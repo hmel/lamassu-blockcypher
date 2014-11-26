@@ -1,24 +1,23 @@
 {
-  "name": "lamassu-chain",
+  "name": "lamassu-blockcypher",
   "version": "0.0.1",
-  "description": "Lamassu Chain.com module",
+  "description": "Address monitoring plugin using http://www.blockcypher.com",
   "main": "info.js",
   "scripts": {
     "test": "mocha"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/lamassu/lamassu-chain.git"
+    "url": "https://github.com/lamassu/lamassu-blockcypher.git"
   },
   "keywords": [
     "Lamassu",
-    "Chain",
     "Bitcoin"
   ],
   "author": "Lamassu (https://lamassu.is)",
   "license": "unlicence",
   "bugs": {
-    "url": "https://github.com/lamassu/lamassu-chain/issues"
+    "url": "https://github.com/lamassu/lamassu-blockcypher/issues"
   },
   "devDependencies": {
     "chai": "^1.9.1",
@@ -26,7 +25,6 @@
   },
   "dependencies": {
     "async": "~0.2.10",
-    "chain-node": "^2.0.0",
     "lodash": "^2.4.1",
     "wreck": "^3.0.0"
   }

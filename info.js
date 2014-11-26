@@ -1,64 +1,54 @@
 'use strict';
 
-var chain = require('chain-node');
+var _ = require('lodash');
+var wreck = require('wreck');
 
-exports.NAME = 'Chain.com';
+exports.NAME = 'Blockcypher';
 exports.SUPPORTED_MODULES = ['info'];
 
-
-function countAll(array, address) {
-  return array.reduce(function(prev, current) {
-    if (current.addresses.indexOf(address) !== -1)
-      prev += current.value;
-
-    return prev;
-  }, 0);
-}
-
-// Iterates all in/outputs and counts how given tx changed address's balance
-function getAmountForAddress(address, tx) {
-  return countAll(tx.outputs, address) - countAll(tx.inputs, address);
-}
-
-function processTx(tx, address) {
-  return {
-    txHash: tx.hash,
-    tsReceived: Date.parse(tx.chain_received_at),
-    confirmations: tx.confirmations,
-    amount: getAmountForAddress(address, tx),
-    fees: tx.fees,
-
-    // NOTE: optional, shold be set when plugin implements 0-conf
-    authorized: false,
-    confidence: 0.0
-  };
-}
-
-
-exports.config = function config(localConfig) {
-  if (localConfig) {
-    chain.apiKeyId = localConfig.keyId;
-    chain.apiKeySecret = localConfig.keySecret;
-  }
+exports.config = function config() {
 };
 
-exports.getAddressLastTx = function getAddressLastTx(address, callback) {
-  chain.getAddressTransactions(address, {limit: 1}, function(err, resp) {
-    if (err)
-      return callback(err);
+var STATUS_VALUES = {
+  insufficientFunds: 0,
+  rejected: 1,
+  published: 2,
+  authorized: 3,
+  confirmed: 4
+};
 
-    if (!resp.length)
-      return callback(); // no error & no tx
+function determineStatus(tx, amount) {
+  if (tx.value < amount) return 'insufficientFunds';
+  if (tx.confirmations > 0) return 'confirmed';
+  if (tx.double_spend || tx.preference !== 'high') return 'rejected';
+  if (tx.confidence > 0.95) return 'authorized';
+  return 'published';
+}
 
-    callback(null, processTx(resp[0], address));
+function findTransaction(txs, amount) {
+  var tx = _.max(txs, function(tx) {
+    return STATUS_VALUES[determineStatus(tx, amount)];
+  });
+
+  return {status: determineStatus(tx), tx: tx};
+}
+
+exports.checkAddress = function checkAddress(address, amount, cb) {
+  var url = 'https://api.blockcypher.com/v1/btc/main/addrs/' + address;
+  wreck.get(url, {json: true}, function (err, res, payload) {
+    if (err) return cb(err);
+    if (payload.error) return cb(new Error(payload.error));
+
+    if (payload.final_n_tx === 0) return cb(null, 'notSeen', 0, null);
+
+    var txRec = findTransaction(payload.txrefs, amount);
+    cb(null, txRec.status, txRec.tx.value, txRec.tx.tx_hash);
   });
 };
 
-exports.getTx = function getTx(txHash, address, callback) {
-  chain.getTransaction(txHash, function(err, resp) {
-    if (err)
-      return callback(err);
-
-    callback(null, processTx(resp, address));
-  });
-};
+/*
+var address = '1PuwQ6uWXNeGcEnLCAXmRJozdLZ9M4NWQ7';
+exports.checkAddress(address, 100000, function() {
+  console.dir(arguments);
+});
+*/
