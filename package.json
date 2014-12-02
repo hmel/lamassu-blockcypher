@@ -1,6 +1,6 @@
 {
   "name": "lamassu-blockcypher",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Address monitoring plugin using http://www.blockcypher.com",
   "main": "info.js",
   "scripts": {
